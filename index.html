@@ -32,10 +32,10 @@
 
     <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-extrabold text-blue-800 mb-6 border-b pb-2">
-            Dashboard de Produtividade de Seccionadoras
+            Dashboard de Produtividade de Seccionadoras/Coladeiras
         </h1>
         <p class="text-gray-600 mb-4">
-            Acompanhe a eficiência de corte (%) separada por máquina. Os dados são salvos localmente.
+            Acompanhe a eficiência de corte (SCM/Giben) ou colagem (Romani) (%). Os dados são salvos localmente.
         </p>
 
         <!-- Meta Atual e Configuração -->
@@ -43,24 +43,26 @@
             <div class="flex items-center space-x-3 mb-3 sm:mb-0">
                 <span class="text-sm font-semibold text-gray-700">Meta Diária Atual:</span>
                 <span id="target-display" class="font-bold text-xl text-purple-700">Carregando...</span>
-                <span class="text-sm text-gray-500">m/dia</span>
+                <!-- ID adicionado para atualização dinâmica da unidade -->
+                <span class="text-sm text-gray-500" id="target-unit-display">chapas/dia</span> 
                 <button id="toggle-target-btn" class="text-gray-500 hover:text-purple-600 transition duration-150 p-1 rounded-full ml-2" title="Configurar Meta">
                     <!-- Icone de Engrenagem (Settings) -->
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.527.28.986.08 1.066-.574z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 </button>
             </div>
-            <!-- REMOVIDO: Display de ID do Usuário -->
         </div>
 
         <!-- Seção de Configurações de Meta -->
         <div id="target-section" class="bg-purple-50 border border-purple-200 p-4 rounded-xl shadow-inner mb-8 hidden">
-            <h2 class="text-lg font-semibold text-purple-800 mb-4">Ajustar Meta de Produtividade Diária (m/dia)</h2>
+            <!-- ID adicionado para atualização dinâmica da unidade no título -->
+            <h2 class="text-lg font-semibold text-purple-800 mb-4">Ajustar Meta de Produtividade Diária (<span id="target-form-unit-display">CHAPS/DIA</span>)</h2>
             <form id="target-form" class="flex flex-col md:flex-row gap-4 items-end">
                 <div class="flex-1 w-full">
-                    <label for="target-input" class="block text-sm font-medium text-purple-700 mb-1">
-                        Nova Meta (Metros/Dia)
+                    <!-- ID adicionado para atualização dinâmica do rótulo -->
+                    <label for="target-input" class="block text-sm font-medium text-purple-700 mb-1" id="target-input-label">
+                        Nova Meta (Chapas/Dia)
                     </label>
-                    <input type="number" id="target-input" required min="100" placeholder="Ex: 160000" 
+                    <input type="number" id="target-input" required min="100" placeholder="Ex: 5000" 
                            class="w-full p-2 border border-purple-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
                 </div>
                 <button type="submit" class="w-full md:w-auto p-2 px-6 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition duration-150 shadow-md">
@@ -73,10 +75,13 @@
         <!-- Seção de Navegação por Abas -->
         <div class="flex space-x-2 mb-8 p-1 bg-white rounded-xl shadow-lg">
             <button id="tab-scm" data-view="scm" class="tab-button active flex-1 p-3 rounded-xl font-bold text-gray-700 bg-blue-100 hover:bg-blue-200 transition duration-150">
-                SCM - Produtividade
+                SCM - Seccionadora
             </button>
             <button id="tab-giben" data-view="giben" class="tab-button flex-1 p-3 rounded-xl font-bold text-gray-700 hover:bg-blue-100 transition duration-150">
-                Giben - Produtividade
+                Giben - Seccionadora
+            </button>
+            <button id="tab-romani" data-view="romani" class="tab-button flex-1 p-3 rounded-xl font-bold text-gray-700 hover:bg-blue-100 transition duration-150">
+                Romani - Coladeira
             </button>
             <button id="tab-reports" data-view="reports" class="tab-button flex-1 p-3 rounded-xl font-bold text-gray-700 hover:bg-blue-100 transition duration-150">
                 Relatórios
@@ -105,8 +110,9 @@
                         <input type="date" id="input-date" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div>
-                        <label for="input-meters" class="block text-sm font-medium text-gray-700 mb-1">Metros Lineares Cortados (m)</label>
-                        <input type="number" id="input-meters" step="0.01" required min="1" placeholder="Ex: 150000" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <!-- Campo de valor que será dinâmico: Chapas (un) ou Metros (m) -->
+                        <label for="input-value" class="block text-sm font-medium text-gray-700 mb-1" id="input-value-label">Chapas Cortadas (un)</label>
+                        <input type="number" id="input-value" step="1" required min="1" placeholder="Ex: 5500" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div>
                         <label for="input-hours" class="block text-sm font-medium text-gray-700 mb-1">Tempo de Trabalho Gasto (h)</label>
@@ -134,7 +140,8 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metros (m)</th>
+                                <!-- ID adicionado para atualização dinâmica do cabeçalho de valor -->
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" id="table-value-header">Chapas (un)</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo (h)</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produtividade (%)</th>
                                 <th scope="col" class="relative px-6 py-3">Ações</th>
@@ -161,7 +168,7 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ano</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metros Totais (m)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" id="annual-report-value-header">Chapas Totais (un)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total de Horas (h)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dias Registrados</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produtividade Média (%)</th>
@@ -182,7 +189,7 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mês / Ano</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metros Totais (m)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" id="monthly-report-value-header">Chapas Totais (un)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total de Horas (h)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dias Registrados</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produtividade Média (%)</th>
@@ -202,17 +209,26 @@
     <!-- Script de Lógica e LocalStorage -->
     <script>
         // --- Constantes de Configuração e LocalStorage ---
-        const DEFAULT_DAILY_TARGET = 160000; // 160.000 metros/dia
-        let maxDailyTarget = DEFAULT_DAILY_TARGET; 
+        
+        // Chaves do LocalStorage para metas (agora 2 chaves)
+        const PANEL_TARGET_KEY = 'productivityTarget_panels_dia'; // SCM, GIBEN
+        const METER_TARGET_KEY = 'productivityTarget_meters_dia'; // ROMANI (Coladeira)
+        
+        // Metas Padrão
+        const DEFAULT_PANEL_TARGET = 5000; // 5000 Chapas/dia
+        const DEFAULT_METER_TARGET = 100000; // 100.000 Metros/dia (Coladeira)
 
-        // Chaves do LocalStorage
-        const TARGET_KEY = 'productivityTarget_m_dia';
+        let panelDailyTarget = DEFAULT_PANEL_TARGET;
+        let meterDailyTarget = DEFAULT_METER_TARGET;
+        
+        // Chaves de dados
         const SCM_DATA_KEY = 'scm_productivity_data';
         const GIBEN_DATA_KEY = 'giben_productivity_data';
+        const ROMANI_DATA_KEY = 'romani_productivity_data'; 
         
         let productivityChart = null;
         let currentMachine = 'scm';
-        let currentView = 'scm'; // Novo estado para controlar a aba ativa
+        let currentView = 'scm'; 
 
         // Elementos UI
         const toggleFormButton = document.getElementById('toggle-form-btn');
@@ -222,8 +238,10 @@
         const targetForm = document.getElementById('target-form');
         const targetInput = document.getElementById('target-input');
         const targetDisplay = document.getElementById('target-display');
-        
-        // Novos elementos para as abas
+        const targetUnitDisplay = document.getElementById('target-unit-display');
+        const targetFormUnitDisplay = document.getElementById('target-form-unit-display');
+        const targetInputLabel = document.getElementById('target-input-label');
+
         const productivityContent = document.getElementById('productivity-content');
         const reportsContent = document.getElementById('reports-content');
 
@@ -267,8 +285,8 @@
         function toggleFormVisibility(hide = false) {
             const isHidden = inputSection.classList.contains('hidden');
 
-            // Só permite mostrar o formulário se estiver na aba de produtividade (SCM ou Giben)
-            if (currentView !== 'scm' && currentView !== 'giben') {
+            // Só permite mostrar o formulário se estiver na aba de produtividade (SCM, Giben ou Romani)
+            if (currentView !== 'scm' && currentView !== 'giben' && currentView !== 'romani') {
                 inputSection.classList.add('hidden');
                 return; 
             }
@@ -329,7 +347,7 @@
                         y: {
                             beginAtZero: true,
                             title: { display: true, text: 'Produtividade (%)', color: '#4B5563' },
-                            max: 150 // Aumenta o máximo para melhor visualização de picos
+                            max: 150 
                         },
                         x: {
                             title: { display: true, text: 'Data', color: '#4B5563' }
@@ -350,73 +368,114 @@
         function updateChart(data) {
             // Ordena os dados por data
             const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const target = currentMachine === 'romani' ? meterDailyTarget : panelDailyTarget;
             
             productivityChart.data.labels = sortedData.map(item => item.date);
-            // Calcula a porcentagem em tempo real com a meta DIÁRIA atual (Metros / Meta)
+            // Calcula a porcentagem em tempo real com a meta DIÁRIA atual (Valor / Meta)
             productivityChart.data.datasets[0].data = sortedData.map(item => 
-                (item.meters / maxDailyTarget) * 100
+                (item.value / target) * 100
             );
             productivityChart.update();
         }
 
         // --- Funções de LocalStorage (CRUD) ---
+        
+        /**
+         * Retorna a chave do LocalStorage para a máquina fornecida.
+         */
+        function getLocalStorageKey(machine) {
+            switch (machine) {
+                case 'scm': return SCM_DATA_KEY;
+                case 'giben': return GIBEN_DATA_KEY;
+                case 'romani': return ROMANI_DATA_KEY;
+                default: throw new Error(`Máquina desconhecida: ${machine}`);
+            }
+        }
 
         /**
          * Adiciona dados fictícios ao LocalStorage se a chave estiver vazia.
+         * O campo 'value' agora armazena Chapas (un) ou Metros (m)
          */
         function addInitialMockData(machine) {
             const mockData = [
-                // Dados em Outubro 2024
-                { id: crypto.randomUUID(), date: "2024-10-21", meters: 155000, hours: 8.0, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2024-10-22", meters: 140000, hours: 8.0, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2024-10-23", meters: 165000, hours: 8.5, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2024-10-24", meters: 100000, hours: 6.0, machine: 'scm' }, 
-                
-                // Dados em Setembro 2024 (para relatório mensal)
-                { id: crypto.randomUUID(), date: "2024-09-15", meters: 180000, hours: 9.0, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2024-09-16", meters: 175000, hours: 8.5, machine: 'scm' }, 
-                
-                // Dados em 2023 (para relatório anual)
-                { id: crypto.randomUUID(), date: "2023-11-01", meters: 150000, hours: 8.0, machine: 'scm' }, 
+                // Dados SCM (Chapas)
+                { id: crypto.randomUUID(), date: "2024-10-21", value: 4500, hours: 8.0, machine: 'scm' }, 
+                { id: crypto.randomUUID(), date: "2024-10-22", value: 5000, hours: 8.0, machine: 'scm' }, 
+                { id: crypto.randomUUID(), date: "2024-10-23", value: 5500, hours: 8.5, machine: 'scm' }, 
+                { id: crypto.randomUUID(), date: "2024-10-24", value: 3000, hours: 6.0, machine: 'scm' }, 
+                { id: crypto.randomUUID(), date: "2024-09-15", value: 6000, hours: 9.0, machine: 'scm' }, 
+                { id: crypto.randomUUID(), date: "2024-09-16", value: 5750, hours: 8.5, machine: 'scm' }, 
+                { id: crypto.randomUUID(), date: "2023-11-01", value: 4800, hours: 8.0, machine: 'scm' }, 
 
-                // Dados Giben
-                { id: crypto.randomUUID(), date: "2024-10-21", meters: 120000, hours: 7.5, machine: 'giben' }, 
-                { id: crypto.randomUUID(), date: "2024-10-22", meters: 170000, hours: 9.0, machine: 'giben' }, 
-                { id: crypto.randomUUID(), date: "2024-10-23", meters: 150000, hours: 8.0, machine: 'giben' }, 
+                // Dados Giben (Chapas)
+                { id: crypto.randomUUID(), date: "2024-10-21", value: 4200, hours: 7.5, machine: 'giben' }, 
+                { id: crypto.randomUUID(), date: "2024-10-22", value: 5700, hours: 9.0, machine: 'giben' }, 
+                { id: crypto.randomUUID(), date: "2024-10-23", value: 5000, hours: 8.0, machine: 'giben' }, 
+
+                // Dados Romani (Metros Lineares - Coladeira)
+                { id: crypto.randomUUID(), date: "2024-10-21", value: 105000, hours: 9.0, machine: 'romani' }, 
+                { id: crypto.randomUUID(), date: "2024-10-22", value: 95000, hours: 8.5, machine: 'romani' }, 
+                { id: crypto.randomUUID(), date: "2024-10-23", value: 110000, hours: 9.5, machine: 'romani' }, 
             ];
 
             const machineData = mockData.filter(d => d.machine === machine);
-            localStorage.setItem(machine === 'scm' ? SCM_DATA_KEY : GIBEN_DATA_KEY, JSON.stringify(machineData));
-            showAlert(`Dados de demonstração para ${machine.toUpperCase()} carregados!`, 'info', 2000);
-            return machineData;
+            
+            try {
+                const key = getLocalStorageKey(machine);
+                localStorage.setItem(key, JSON.stringify(machineData));
+                showAlert(`Dados de demonstração para ${machine.toUpperCase()} carregados!`, 'info', 2000);
+                return machineData;
+            } catch (e) {
+                console.error(e.message);
+                return [];
+            }
         }
 
         /**
          * Carrega os registros de uma máquina do LocalStorage.
          */
         function loadRecords(machine = currentMachine) {
-            const key = machine === 'scm' ? SCM_DATA_KEY : GIBEN_DATA_KEY;
-            const json = localStorage.getItem(key);
-            
-            if (!json) {
-                // Se estiver vazio, carrega e retorna os dados fictícios
-                return addInitialMockData(machine);
+            try {
+                const key = getLocalStorageKey(machine);
+                const json = localStorage.getItem(key);
+                
+                if (!json) {
+                    // Se estiver vazio, carrega e retorna os dados fictícios
+                    return addInitialMockData(machine);
+                }
+                // Tenta carregar os dados. Se for um array de objetos, garante que o campo seja 'value'
+                const records = JSON.parse(json);
+                return records.map(record => ({
+                    // Usa 'value' se 'meters' existir, para compatibilidade com dados antigos
+                    value: record.value !== undefined ? record.value : (record.meters || 0),
+                    ...record
+                }));
+
+            } catch (e) {
+                console.error("Erro ao carregar dados:", e.message);
+                // Em caso de erro (ex: dados corrompidos), tenta usar mock data como fallback
+                return addInitialMockData(machine); 
             }
-            return JSON.parse(json);
         }
 
         /**
          * Salva os registros atualizados no LocalStorage e atualiza a UI.
          */
         function saveRecords(machine, data) {
-            const key = machine === 'scm' ? SCM_DATA_KEY : GIBEN_DATA_KEY;
-            localStorage.setItem(key, JSON.stringify(data));
-            // Chama a atualização da UI baseada na view ativa
-            if (currentView === machine) {
-                updateUI();
-            } else if (currentView === 'reports') {
-                // Se estiver na aba de relatórios, regenera os relatórios
-                generateReports(machine);
+            try {
+                const key = getLocalStorageKey(machine);
+                localStorage.setItem(key, JSON.stringify(data));
+                
+                // Chama a atualização da UI baseada na view ativa
+                if (currentView === machine) {
+                    updateUI();
+                } else if (currentView === 'reports') {
+                    // Se estiver na aba de relatórios, regenera os relatórios
+                    generateReports(currentMachine);
+                }
+            } catch (e) {
+                 showAlert("Erro ao salvar dados localmente.", 'error');
+                 console.error("Erro ao salvar dados:", e.message);
             }
         }
 
@@ -468,28 +527,69 @@
         }
         
         /**
-         * Carrega a meta do LocalStorage na inicialização.
+         * Carrega as metas de produtividade do LocalStorage na inicialização.
          */
         function loadTargetProductivity() {
-            const storedTarget = localStorage.getItem(TARGET_KEY);
-            const target = storedTarget ? parseFloat(storedTarget) : DEFAULT_DAILY_TARGET;
+            const storedPanelTarget = localStorage.getItem(PANEL_TARGET_KEY);
+            const storedMeterTarget = localStorage.getItem(METER_TARGET_KEY);
+
+            panelDailyTarget = storedPanelTarget ? parseFloat(storedPanelTarget) : DEFAULT_PANEL_TARGET;
+            meterDailyTarget = storedMeterTarget ? parseFloat(storedMeterTarget) : DEFAULT_METER_TARGET;
             
-            maxDailyTarget = target;
-            targetInput.value = target;
-            targetDisplay.textContent = target.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+            // Define o target para o display e input baseado na máquina ativa
+            updateTargetUI();
         }
+
+        /**
+         * Helper function para atualizar os elementos de UI da Meta
+         */
+        function updateTargetUI() {
+            let target;
+            let unit;
+            let unitLabel;
+
+            const isRomani = currentMachine === 'romani';
+            
+            if (isRomani) {
+                target = meterDailyTarget;
+                unit = 'm/dia';
+                unitLabel = 'Metros/Dia';
+            } else { // scm, giben
+                target = panelDailyTarget;
+                unit = 'chapas/dia';
+                unitLabel = 'Chapas/Dia';
+            }
+            
+            // Atualiza o display do target atual
+            targetDisplay.textContent = target.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+            targetUnitDisplay.textContent = unit;
+            
+            // Atualiza o formulário de configuração de meta
+            targetInput.value = target;
+            targetFormUnitDisplay.textContent = unitLabel.toUpperCase();
+            targetInputLabel.textContent = `Nova Meta (${unitLabel})`;
+        }
+
 
         /**
          * Salva a meta no LocalStorage e atualiza a UI.
          */
         function saveTargetProductivity(newTarget) {
-            localStorage.setItem(TARGET_KEY, newTarget);
-            loadTargetProductivity(); // Atualiza a variável global e o display
+            let key;
+            if (currentMachine === 'romani') {
+                key = METER_TARGET_KEY;
+            } else {
+                key = PANEL_TARGET_KEY;
+            }
+            
+            localStorage.setItem(key, newTarget);
+            loadTargetProductivity(); // Atualiza as variáveis globais e o display
             showAlert("Meta de produtividade salva com sucesso!", 'success', 2500);
             toggleTargetVisibility();
+            
             // Atualiza os relatórios e o gráfico com a nova meta
-            if (currentView === 'scm' || currentView === 'giben') {
-                 updateUI();
+            if (currentView === currentMachine) {
+                updateUI();
             } else if (currentView === 'reports') {
                 generateReports(currentMachine);
             }
@@ -499,18 +599,52 @@
         // --- Funções de Renderização da UI ---
 
         /**
+         * Atualiza todos os elementos de UI específicos da máquina (rótulos, títulos, placeholders).
+         */
+        function updateMachineUI() {
+            const isRomani = currentMachine === 'romani';
+            
+            // 1. Target UI (Meta) - Chamada para atualizar meta e unidade
+            updateTargetUI();
+
+            // 2. Form UI
+            const unitText = isRomani ? 'Metros Lineares Colados (m)' : 'Chapas Cortadas (un)';
+            const placeholder = isRomani ? 'Ex: 105000' : 'Ex: 5500';
+            const step = isRomani ? '0.01' : '1';
+            
+            document.getElementById('form-title').textContent = `Registro Diário de Produção (${currentMachine.toUpperCase()})`;
+            document.getElementById('input-value-label').textContent = unitText;
+            document.getElementById('input-value').placeholder = placeholder;
+            document.getElementById('input-value').step = step;
+            
+            // 3. Table UI Headers
+            document.getElementById('table-machine-name').textContent = currentMachine.toUpperCase();
+            document.getElementById('table-value-header').textContent = isRomani ? 'Metros (m)' : 'Chapas (un)';
+            
+            // 4. Report UI Headers
+            const reportValueHeader = isRomani ? 'Metros Totais (m)' : 'Chapas Totais (un)';
+            document.getElementById('annual-report-value-header').textContent = reportValueHeader;
+            document.getElementById('monthly-report-value-header').textContent = reportValueHeader;
+            document.getElementById('annual-report-machine-name').textContent = currentMachine.toUpperCase();
+            document.getElementById('monthly-report-machine-name').textContent = currentMachine.toUpperCase();
+        }
+
+        /**
          * Renderiza a tabela de histórico de produtividade.
          */
         function renderTable(records) {
             const tbody = document.getElementById('data-table-body');
             tbody.innerHTML = '';
-            document.getElementById('table-machine-name').textContent = currentMachine.toUpperCase();
             
+            const isRomani = currentMachine === 'romani';
+            const target = isRomani ? meterDailyTarget : panelDailyTarget;
+
             // Ordenar por data (mais recente primeiro)
             const sortedRecords = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
 
             if (sortedRecords.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Nenhum registro encontrado para ${currentMachine.toUpperCase()}.</td></tr>`;
+                const unit = isRomani ? 'Metros' : 'Chapas';
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Nenhum registro de ${unit} encontrado para ${currentMachine.toUpperCase()}.</td></tr>`;
                 return;
             }
 
@@ -518,17 +652,18 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50';
 
-                const meters = Number(record.meters).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                // Formata o valor (chapas ou metros)
+                const valueFormatted = Number(record.value).toLocaleString('pt-BR', { minimumFractionDigits: isRomani ? 2 : 0, maximumFractionDigits: isRomani ? 2 : 0 });
                 const hours = Number(record.hours).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 
                 // Re-calcula a porcentagem com a meta DIÁRIA ATUAL
-                const currentProductivityPercent = (record.meters / maxDailyTarget) * 100;
+                const currentProductivityPercent = (record.value / target) * 100;
                 
                 const productivityPercentFormatted = Number(currentProductivityPercent).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                 tr.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.date}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${meters}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${valueFormatted}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${hours}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">${productivityPercentFormatted} %</td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -602,9 +737,8 @@
         // --- Lógica de Relatórios e Agregação ---
         
         /**
-         * Agrega os registros por ano (para o relatório anual) ou por mês/ano (para o relatório mensal).
-         * @param {Array<Object>} records - Lista de registros da máquina.
-         * @param {string} groupBy - 'year' ou 'month'.
+         * Agrega os registros por ano ou por mês/ano.
+         * Usa 'value' para chapas ou metros.
          */
         function aggregateReports(records, groupBy) {
             const aggregated = records.reduce((acc, record) => {
@@ -615,7 +749,6 @@
                 if (groupBy === 'year') {
                     key = year.toString();
                 } else {
-                    // Mês no formato YYYY-MM para ordenação e display
                     const month = String(date.getMonth() + 1).padStart(2, '0');
                     key = `${year}-${month}`;
                 }
@@ -623,29 +756,34 @@
                 if (!acc[key]) {
                     acc[key] = { 
                         key,
-                        totalMeters: 0, 
+                        totalValue: 0, // Armazena o valor total (chapas ou metros)
                         totalHours: 0, 
                         daysCount: new Set(),
                         machine: record.machine
                     };
                 }
 
-                acc[key].totalMeters += record.meters;
+                acc[key].totalValue += record.value;
                 acc[key].totalHours += record.hours;
                 acc[key].daysCount.add(record.date);
 
                 return acc;
             }, {});
 
+            // Determina a meta para o cálculo
+            const machine = records[0] ? records[0].machine : currentMachine;
+            const isRomani = machine === 'romani';
+            const target = isRomani ? meterDailyTarget : panelDailyTarget;
+
             // Converter para array e calcular a produtividade média
             return Object.values(aggregated).map(item => {
                 const days = item.daysCount.size;
-                // Produtividade média (%) = (Metros Totais / (Dias * Meta Diária)) * 100
-                const avgProductivity = (item.totalMeters / (days * maxDailyTarget)) * 100;
+                // Produtividade média (%) = (Valor Total / (Dias * Meta Diária)) * 100
+                const avgProductivity = (item.totalValue / (days * target)) * 100;
 
                 return {
                     key: item.key,
-                    totalMeters: item.totalMeters,
+                    totalValue: item.totalValue,
                     totalHours: item.totalHours,
                     days: days,
                     avgProductivity: avgProductivity
@@ -678,9 +816,7 @@
             renderReportTable(monthlyData, 'monthly-report-body', 'month', machine);
             
              // Atualiza o nome da máquina nos títulos dos relatórios
-            document.getElementById('annual-report-machine-name').textContent = machine.toUpperCase();
-            document.getElementById('monthly-report-machine-name').textContent = machine.toUpperCase();
-            
+            updateMachineUI(); // Garante que os títulos dos relatórios (máquina e unidade) estão corretos
         }
         
         /**
@@ -689,6 +825,8 @@
         function renderReportTable(data, tableBodyId, type, machine) {
             const tbody = document.getElementById(tableBodyId);
             tbody.innerHTML = '';
+            
+            const isRomani = machine === 'romani';
 
             if (data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Nenhum registro encontrado para ${machine.toUpperCase()}.</td></tr>`;
@@ -698,8 +836,9 @@
             data.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50';
-
-                const totalMetersFormatted = Number(item.totalMeters).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+                
+                // Formatação do valor (chapas ou metros)
+                const totalValueFormatted = Number(item.totalValue).toLocaleString('pt-BR', { maximumFractionDigits: isRomani ? 0 : 0 });
                 const totalHoursFormatted = Number(item.totalHours).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
                 const avgProductivityFormatted = Number(item.avgProductivity).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const keyFormatted = type === 'month' ? formatMonthKey(item.key) : item.key;
@@ -707,7 +846,7 @@
 
                 tr.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${keyFormatted}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${totalMetersFormatted}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${totalValueFormatted}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${totalHoursFormatted}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${item.days}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-extrabold text-purple-700">${avgProductivityFormatted} %</td>
@@ -734,17 +873,23 @@
             currentView = viewId;
 
             // 1. Alterna o conteúdo principal
-            const isProductivityView = viewId === 'scm' || viewId === 'giben';
+            const isProductivityView = viewId === 'scm' || viewId === 'giben' || viewId === 'romani';
 
             if (isProductivityView) {
                 currentMachine = viewId;
                 productivityContent.classList.remove('hidden');
                 reportsContent.classList.add('hidden');
+                
+                // ATUALIZA TODA A UI baseada na máquina ATIVA (incluindo metas e rótulos)
+                updateMachineUI(); 
                 updateUI(); 
             } else if (viewId === 'reports') {
                 productivityContent.classList.add('hidden');
                 reportsContent.classList.remove('hidden');
-                generateReports(currentMachine); // Gera relatórios para a última máquina ativa
+                
+                // Atualiza a UI para a máquina ATIVA, depois gera relatórios para ela.
+                updateMachineUI(); 
+                generateReports(currentMachine); 
             } else {
                 return; 
             }
@@ -768,6 +913,7 @@
         // Adicionar listeners aos botões de aba
         document.getElementById('tab-scm').addEventListener('click', () => switchView('scm'));
         document.getElementById('tab-giben').addEventListener('click', () => switchView('giben'));
+        document.getElementById('tab-romani').addEventListener('click', () => switchView('romani')); 
         document.getElementById('tab-reports').addEventListener('click', () => switchView('reports'));
 
 
@@ -777,7 +923,7 @@
          * Inicializa a aplicação: carrega meta, inicializa gráfico e carrega dados.
          */
         function initializeApp() {
-            // 1. Carrega a meta de produtividade do LocalStorage
+            // 1. Carrega as metas (painel e metro) do LocalStorage
             loadTargetProductivity();
             
             // 2. Inicializa o Gráfico
@@ -792,24 +938,28 @@
             e.preventDefault();
 
             const date = document.getElementById('input-date').value;
-            const meters = parseFloat(document.getElementById('input-meters').value);
+            // O valor é agora 'value' (chapas ou metros)
+            const value = parseFloat(document.getElementById('input-value').value); 
             const hours = parseFloat(document.getElementById('input-hours').value);
 
-            if (isNaN(meters) || isNaN(hours) || hours <= 0) {
-                showAlert("Por favor, insira valores válidos e positivos para Metros e Horas.", 'error');
+            // Determina a meta e a unidade para validação e cálculo
+            const isRomani = currentMachine === 'romani';
+            const target = isRomani ? meterDailyTarget : panelDailyTarget;
+            const unitLabel = isRomani ? 'Metros' : 'Chapas';
+
+
+            if (isNaN(value) || isNaN(hours) || hours <= 0 || value <= 0) {
+                showAlert(`Por favor, insira valores válidos e positivos para ${unitLabel} e Horas.`, 'error');
                 return;
             }
 
-            // Cálculo da produtividade por hora (m/h) - mantido para referência
-            const productivity_m_h = meters / hours;
-            
-            // Cálculo da Produtividade em Porcentagem (Metros / Meta Diária)
-            const productivity_percent = (meters / maxDailyTarget) * 100;
+            const productivity_m_h = value / hours;
+            const productivity_percent = (value / target) * 100;
 
             const newRecord = {
                 machine: currentMachine,
                 date: date,
-                meters: meters,
+                value: value, 
                 hours: hours,
                 productivity_m_h: productivity_m_h,
                 productivity_percent: productivity_percent, 
@@ -822,9 +972,11 @@
         targetForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const newTarget = parseFloat(targetInput.value);
+            const isRomani = currentMachine === 'romani';
+            const unitLabel = isRomani ? 'Metros/Dia' : 'Chapas/Dia';
 
-            if (isNaN(newTarget) || newTarget < 100) {
-                showAlert("Por favor, insira uma meta de Metros/Dia válida (mínimo 100).", 'error');
+            if (isNaN(newTarget) || newTarget < 1) {
+                showAlert(`Por favor, insira uma meta de ${unitLabel} válida (mínimo 1).`, 'error');
                 return;
             }
 
