@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Produtividade</title>
+    <title>Dashboard de Produtividade e Comissão</title>
     <!-- Carregamento do Tailwind CSS para estilização rápida e responsiva -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Carregamento do Chart.js para visualização de dados -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <!-- Configuração da fonte Inter -->
     <style>
-        /* Configuração de Fonte Inter */
         html { font-family: 'Inter', sans-serif; }
-        /* Estilos customizados para o painel de alerta */
         .alert-box {
             position: fixed;
             top: 20px;
@@ -23,946 +22,827 @@
             color: white;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
         }
+        .content-tab-button.active {
+            border-bottom: 3px solid #1D4ED8;
+            color: #1D4ED8;
+            font-weight: 600;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 sm:p-8">
+<body class="bg-gray-50 min-h-screen">
 
-    <!-- Painel de Alerta Customizado (substitui alert() e confirm()) -->
-    <div id="alert-container" class="alert-box"></div>
+    <!-- Painel de Alerta (Não usar alert() ou confirm()) -->
+    <div id="alert-container" class="alert-box space-y-2"></div>
 
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-extrabold text-blue-800 mb-6 border-b pb-2">
-            Dashboard de Produtividade de Seccionadoras/Coladeiras
-        </h1>
-        <p class="text-gray-600 mb-4">
-            Acompanhe a eficiência de corte (SCM/Giben) ou colagem (Romani) (%). Os dados são salvos localmente.
-        </p>
-
-        <!-- Meta Atual e Configuração -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="flex items-center space-x-3 mb-3 sm:mb-0">
-                <span class="text-sm font-semibold text-gray-700">Meta Diária Atual:</span>
-                <span id="target-display" class="font-bold text-xl text-purple-700">Carregando...</span>
-                <!-- ID adicionado para atualização dinâmica da unidade -->
-                <span class="text-sm text-gray-500" id="target-unit-display">chapas/dia</span> 
-                <button id="toggle-target-btn" class="text-gray-500 hover:text-purple-600 transition duration-150 p-1 rounded-full ml-2" title="Configurar Meta">
-                    <!-- Icone de Engrenagem (Settings) -->
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.527.28.986.08 1.066-.574z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                </button>
-            </div>
+    <header class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl font-bold text-gray-900">Dashboard de Produtividade e Comissão (Simulação Estática)</h1>
         </div>
+    </header>
 
-        <!-- Seção de Configurações de Meta -->
-        <div id="target-section" class="bg-purple-50 border border-purple-200 p-4 rounded-xl shadow-inner mb-8 hidden">
-            <!-- ID adicionado para atualização dinâmica da unidade no título -->
-            <h2 class="text-lg font-semibold text-purple-800 mb-4">Ajustar Meta de Produtividade Diária (<span id="target-form-unit-display">CHAPS/DIA</span>)</h2>
-            <form id="target-form" class="flex flex-col md:flex-row gap-4 items-end">
-                <div class="flex-1 w-full">
-                    <!-- ID adicionado para atualização dinâmica do rótulo -->
-                    <label for="target-input" class="block text-sm font-medium text-purple-700 mb-1" id="target-input-label">
-                        Nova Meta (Chapas/Dia)
-                    </label>
-                    <input type="number" id="target-input" required min="100" placeholder="Ex: 5000" 
-                           class="w-full p-2 border border-purple-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
-                </div>
-                <button type="submit" class="w-full md:w-auto p-2 px-6 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition duration-150 shadow-md">
-                    Salvar Meta
-                </button>
-            </form>
-        </div>
-
-
-        <!-- Seção de Navegação por Abas -->
-        <div class="flex space-x-2 mb-8 p-1 bg-white rounded-xl shadow-lg">
-            <button id="tab-scm" data-view="scm" class="tab-button active flex-1 p-3 rounded-xl font-bold text-gray-700 bg-blue-100 hover:bg-blue-200 transition duration-150">
-                SCM - Seccionadora
-            </button>
-            <button id="tab-giben" data-view="giben" class="tab-button flex-1 p-3 rounded-xl font-bold text-gray-700 hover:bg-blue-100 transition duration-150">
-                Giben - Seccionadora
-            </button>
-            <button id="tab-romani" data-view="romani" class="tab-button flex-1 p-3 rounded-xl font-bold text-gray-700 hover:bg-blue-100 transition duration-150">
-                Romani - Coladeira
-            </button>
-            <button id="tab-reports" data-view="reports" class="tab-button flex-1 p-3 rounded-xl font-bold text-gray-700 hover:bg-blue-100 transition duration-150">
-                Relatórios
-            </button>
-        </div>
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         
-        <!-- Conteúdo do Dashboard (Produtividade e Histórico) -->
-        <div id="productivity-content">
-
-            
-            <!-- Botão Novo Registro para Exibir/Ocultar o Formulário -->
-            <div class="flex justify-start mb-6">
-                <button id="toggle-form-btn" class="px-6 py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition duration-150 shadow-md flex items-center">
-                    <!-- Ícone de Adicionar -->
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Novo Registro
-                </button>
+        <!-- Seleção de Máquina (Tabs) -->
+        <div class="bg-white p-4 rounded-lg shadow-lg mb-4">
+            <h2 class="text-xl font-semibold text-gray-800 mb-3">Selecione a Máquina</h2>
+            <div id="machine-tabs" class="flex flex-wrap gap-2">
+                <!-- Botões das máquinas serão injetados aqui -->
             </div>
+            <p class="text-sm text-gray-500 mt-2">Status da Persistência: <span id="user-id" class="font-mono text-xs bg-yellow-100 p-1 rounded text-yellow-800">Dados em Memória e LocalStorage (para Metas)</span></p>
+        </div>
 
-            <!-- Seção de Entrada de Dados -->
-            <div id="input-section" class="bg-white p-6 rounded-xl shadow-lg mb-8 hidden">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4" id="form-title">Registro Diário de Produção (SCM)</h2>
-                <form id="production-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div>
-                        <label for="input-date" class="block text-sm font-medium text-gray-700 mb-1">Data</label>
-                        <input type="date" id="input-date" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <!-- Campo de valor que será dinâmico: Chapas (un) ou Metros (m) -->
-                        <label for="input-value" class="block text-sm font-medium text-gray-700 mb-1" id="input-value-label">Chapas Cortadas (un)</label>
-                        <input type="number" id="input-value" step="1" required min="1" placeholder="Ex: 5500" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label for="input-hours" class="block text-sm font-medium text-gray-700 mb-1">Tempo de Trabalho Gasto (h)</label>
-                        <input type="number" id="input-hours" step="0.01" required min="0.1" placeholder="Ex: 8.0" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <button type="submit" id="submit-button" class="w-full md:w-auto p-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition duration-150 shadow-md">
-                        Salvar Registro
-                    </button>
-                </form>
-            </div>
-
-            <!-- Seção de Gráfico -->
-            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Tendência da Produtividade (%)</h2>
-                <div class="h-80">
-                    <canvas id="productivityChart"></canvas>
-                </div>
+        <!-- Abas de Conteúdo (Dashboard / Relatório) -->
+        <div class="bg-white rounded-lg shadow-lg mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-4 px-4 pt-3" aria-label="Tabs">
+                    <button data-tab="dashboard" class="content-tab-button px-3 py-2 text-sm font-medium text-gray-500 transition duration-150 active" onclick="window.switchContentTab('dashboard')">Dashboard</button>
+                    <button data-tab="report" class="content-tab-button px-3 py-2 text-sm font-medium text-gray-500 transition duration-150" onclick="window.switchContentTab('report')">Relatório de Comissões</button>
+                </nav>
             </div>
             
-            <!-- Seção de Tabela de Histórico -->
-            <div class="bg-white p-6 rounded-xl shadow-lg">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Histórico de Registros (<span id="table-machine-name">SCM</span>)</h2>
-                <div class="overflow-x-auto">
+            <div id="content-dashboard" class="p-6">
+                <!-- CONTEÚDO DO DASHBOARD (Formulário, Meta, Gráfico, Tabela Detalhada) -->
+                
+                <!-- Meta Diária e Formulário de Registro -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    
+                    <!-- Indicador de Meta Diária -->
+                    <div class="lg:col-span-1 bg-gray-50 p-6 rounded-lg shadow-inner flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-xl font-semibold text-blue-600 mb-2">Meta Diária (<span id="target-unit-display">m/dia</span>)</h3>
+                            <p id="current-target" class="text-4xl font-extrabold text-gray-900">0</p>
+                        </div>
+                        <div class="mt-4">
+                            <form id="target-form" class="flex space-x-2">
+                                <input type="number" id="target-input" placeholder="Nova Meta" min="10" class="flex-grow rounded-md border-gray-300 shadow-sm p-2 border">
+                                <button type="submit" class="bg-green-600 text-white p-2 rounded-md hover:bg-green-700 transition duration-150 shadow-md">Atualizar</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Formulário de Registro de Produção/Entrega -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg border border-gray-100">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Registrar Produção e Entrega</h3>
+                        <form id="production-form" class="space-y-4">
+                            
+                            <!-- Data -->
+                            <div>
+                                <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
+                                <input type="date" id="date" name="date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                            </div>
+
+                            <!-- Métrica Principal e Horas -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- Métrica Principal -->
+                                <div>
+                                    <label for="meters" id="meters-label" class="block text-sm font-medium text-gray-700">Metros Produzidos (m)</label>
+                                    <input type="number" id="meters" name="meters" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                                </div>
+                                
+                                <!-- Horas Trabalhadas -->
+                                <div>
+                                    <label for="hours" class="block text-sm font-medium text-gray-700">Horas Trabalhadas (h)</label>
+                                    <input type="number" step="0.1" id="hours" name="hours" required min="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                                </div>
+                            </div>
+                            
+                            <!-- Operadores (Dupla Fixa) -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Operador 1 (Fixo)</label>
+                                    <p id="operator1-display" class="mt-1 block w-full rounded-md bg-gray-100 p-2 text-gray-800 font-semibold border border-gray-300">Dionei</p>
+                                    <input type="hidden" id="operator1" name="operator1">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Operador 2 (Fixo)</label>
+                                    <p id="operator2-display" class="mt-1 block w-full rounded-md bg-gray-100 p-2 text-gray-800 font-semibold border border-gray-300">Alvaro</p>
+                                    <input type="hidden" id="operator2" name="operator2">
+                                </div>
+                            </div>
+
+                            <!-- Quantidade Entregue (KPI de Entrega) -->
+                            <div>
+                                <label for="delivered-quantity" class="block text-sm font-medium text-gray-700">Quantidade Entregue (unid.)</label>
+                                <input type="number" id="delivered-quantity" name="delivered-quantity" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-150 font-semibold shadow-md">
+                                Registrar Dados
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Desempenho -->
+                <div class="bg-white p-6 rounded-lg shadow-lg mb-6 border border-gray-100">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Desempenho Diário (<span id="chart-main-label">Metros</span> vs. Entregas)</h3>
+                    <div class="h-96">
+                        <canvas id="productivityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabela de Registros -->
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-100">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Registros Recentes da Máquina <span id="current-machine-title" class="text-blue-600"></span></h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                                    <th id="table-main-metric-header" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metros (m)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Operadores</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unids. Bônus*</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comissão (R$)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Meta</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd. Entregue</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="records-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Registros serão injetados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">*Unidades Bônus = Mínimo entre a produção acima da meta e a quantidade entregue.</p>
+                </div>
+            </div>
+
+            <div id="content-report" class="p-6 hidden">
+                <!-- CONTEÚDO DO RELATÓRIO DE COMISSÕES -->
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Relatório de Comissão por Operador</h2>
+                <p class="text-sm text-gray-600 mb-6">Comissão acumulada calculada sobre a produção acima da Meta Diária **LIMITADA** pela quantidade entregue ao cliente (R$ 1,00/Unid. Bônus), dividida entre os dois operadores.</p>
+
+                <div id="commission-summary-container" class="bg-gray-50 p-6 rounded-lg shadow-inner">
                     <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-gray-200">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                                <!-- ID adicionado para atualização dinâmica do cabeçalho de valor -->
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" id="table-value-header">Chapas (un)</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo (h)</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produtividade (%)</th>
-                                <th scope="col" class="relative px-6 py-3">Ações</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Operador</th>
+                                <th class="px-6 py-3 text-right text-sm font-semibold text-gray-700 uppercase tracking-wider">Comissão Acumulada (R$)</th>
                             </tr>
                         </thead>
-                        <tbody id="data-table-body" class="bg-white divide-y divide-gray-200">
-                            <!-- Os dados serão inseridos aqui pelo JavaScript -->
-                            <tr>
-                                <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Nenhum registro encontrado.</td>
-                            </tr>
+                        <tbody id="commission-summary-body" class="bg-white divide-y divide-gray-200">
+                            <tr><td colspan="2" class="px-6 py-4 text-center text-gray-500">Nenhum dado de comissão disponível.</td></tr>
                         </tbody>
                     </table>
                 </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modal de Confirmação (para substituição do confirm()) -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmar Exclusão</h3>
+            <p class="text-sm text-gray-500 mb-6">Você tem certeza que deseja deletar este registro?</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-delete" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancelar</button>
+                <button id="confirm-delete" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Deletar</button>
             </div>
         </div>
-        
-        <!-- Conteúdo dos Relatórios (Mensal e Anual) -->
-        <div id="reports-content" class="hidden">
-            <!-- Conteúdo do Relatório Anual -->
-            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Relatório Anual de Produtividade (<span id="annual-report-machine-name">SCM</span>)</h2>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ano</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" id="annual-report-value-header">Chapas Totais (un)</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total de Horas (h)</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dias Registrados</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produtividade Média (%)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="annual-report-body" class="bg-white divide-y divide-gray-200">
-                            <tr><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Gerando relatório...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Conteúdo do Relatório Mensal -->
-            <div class="bg-white p-6 rounded-xl shadow-lg">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Relatório Mensal de Produtividade (<span id="monthly-report-machine-name">SCM</span>)</h2>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mês / Ano</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" id="monthly-report-value-header">Chapas Totais (un)</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total de Horas (h)</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dias Registrados</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produtividade Média (%)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="monthly-report-body" class="bg-white divide-y divide-gray-200">
-                            <tr><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Gerando relatório...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-
     </div>
 
-    <!-- Script de Lógica e LocalStorage -->
+
     <script>
-        // --- Constantes de Configuração e LocalStorage ---
         
-        // Chaves do LocalStorage para metas (agora 2 chaves)
-        const PANEL_TARGET_KEY = 'productivityTarget_panels_dia'; // SCM, GIBEN
-        const METER_TARGET_KEY = 'productivityTarget_meters_dia'; // ROMANI (Coladeira)
-        
-        // Metas Padrão
-        const DEFAULT_PANEL_TARGET = 5000; // 5000 Chapas/dia
-        const DEFAULT_METER_TARGET = 100000; // 100.000 Metros/dia (Coladeira)
+        // Constantes de Comissão
+        const COMMISSION_RATE = 1.00; // R$ 1,00 por unidade acima da meta (chapa)
 
-        let panelDailyTarget = DEFAULT_PANEL_TARGET;
-        let meterDailyTarget = DEFAULT_METER_TARGET;
-        
-        // Chaves de dados
-        const SCM_DATA_KEY = 'scm_productivity_data';
-        const GIBEN_DATA_KEY = 'giben_productivity_data';
-        const ROMANI_DATA_KEY = 'romani_productivity_data'; 
-        
+        // --- Configuração das Máquinas (Com duplas fixas de operadores) ---
+        const machineConfig = {
+            'SCM': { 
+                name: 'SCM (Seccionadora)', 
+                unit: 'Chapas', 
+                rateLabel: 'Chapas/H', 
+                defaultTarget: 500, 
+                isCommissionable: true, 
+                numOperators: 2,
+                operators: ['Dionei', 'Alvaro'] // Dupla Fixa
+            },
+            'Giben': { 
+                name: 'Giben (Seccionadora)', 
+                unit: 'Chapas', 
+                rateLabel: 'Chapas/H', 
+                defaultTarget: 500, 
+                isCommissionable: true, 
+                numOperators: 2,
+                operators: ['Davi', 'Iago'] // Dupla Fixa
+            },
+            'Romani': { 
+                name: 'Romani (Coladeira)', 
+                unit: 'Metros', 
+                rateLabel: 'Metros/H', 
+                defaultTarget: 2500, 
+                isCommissionable: false, 
+                numOperators: 2,
+                operators: ['Leandro', 'Natan'] // Dupla Fixa
+            },
+        };
+        const machineList = Object.keys(machineConfig);
+        let currentMachine = machineList[0];
+        let maxDailyTarget = 0; // Será carregado do localStorage ou default
+        let currentContentTab = 'dashboard'; 
+
         let productivityChart = null;
-        let currentMachine = 'scm';
-        let currentView = 'scm'; 
+        let allRecords = []; // Armazena todos os registros em memória
 
-        // Elementos UI
-        const toggleFormButton = document.getElementById('toggle-form-btn');
-        const inputSection = document.getElementById('input-section');
-        const toggleTargetButton = document.getElementById('toggle-target-btn');
-        const targetSection = document.getElementById('target-section');
+        // Elementos do DOM
+        const machineTabsContainer = document.getElementById('machine-tabs');
+        const currentTargetDisplay = document.getElementById('current-target');
         const targetForm = document.getElementById('target-form');
         const targetInput = document.getElementById('target-input');
-        const targetDisplay = document.getElementById('target-display');
+        const productionForm = document.getElementById('production-form');
+        const recordsTableBody = document.getElementById('records-table-body');
+        const currentMachineTitle = document.getElementById('current-machine-title');
+        const commissionSummaryBody = document.getElementById('commission-summary-body');
+        
+        // Elementos de Abas
+        const contentDashboard = document.getElementById('content-dashboard');
+        const contentReport = document.getElementById('content-report');
+        
+        // Elementos que mudam dinamicamente
         const targetUnitDisplay = document.getElementById('target-unit-display');
-        const targetFormUnitDisplay = document.getElementById('target-form-unit-display');
-        const targetInputLabel = document.getElementById('target-input-label');
+        const metersLabel = document.getElementById('meters-label');
+        const chartMainLabel = document.getElementById('chart-main-label');
+        const tableMainMetricHeader = document.getElementById('table-main-metric-header');
 
-        const productivityContent = document.getElementById('productivity-content');
-        const reportsContent = document.getElementById('reports-content');
+        // Elementos dos Operadores (Display e Hidden Input)
+        const operator1Display = document.getElementById('operator1-display');
+        const operator2Display = document.getElementById('operator2-display');
+        const operator1Input = document.getElementById('operator1');
+        const operator2Input = document.getElementById('operator2');
+        
+        // Elementos do Modal de Confirmação
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const cancelDeleteButton = document.getElementById('cancel-delete');
+        const confirmDeleteButton = document.getElementById('confirm-delete');
+        let deleteCallback = null;
 
-
-        // --- Funções de UI Auxiliares ---
-
-        // Função para mostrar alertas customizados (substitui alert())
-        function showAlert(message, type = 'success', duration = 4000) {
+        // Função de Alerta Customizada
+        const showAlert = (message, type = 'info') => {
             const container = document.getElementById('alert-container');
             const alertDiv = document.createElement('div');
-            
-            let colorClass, iconHtml;
-            switch (type) {
-                case 'error':
-                    colorClass = 'bg-red-500 border-red-700';
-                    iconHtml = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-                    break;
-                case 'info':
-                    colorClass = 'bg-blue-500 border-blue-700';
-                    iconHtml = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-                    break;
-                case 'success':
-                default:
-                    colorClass = 'bg-green-500 border-green-700';
-                    iconHtml = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-                    break;
+            let bgColor = 'bg-blue-100';
+            let textColor = 'text-blue-800';
+            let icon = 'ℹ️';
+
+            if (type === 'success') {
+                bgColor = 'bg-green-100';
+                textColor = 'text-green-800';
+                icon = '✅';
+            } else if (type === 'error') {
+                bgColor = 'bg-red-100';
+                textColor = 'text-red-800';
+                icon = '❌';
             }
 
-            alertDiv.className = `p-4 mb-3 text-white rounded-lg shadow-lg flex items-center ${colorClass}`;
-            alertDiv.innerHTML = `${iconHtml}<span>${message}</span>`;
+            alertDiv.className = `${bgColor} ${textColor} p-3 rounded-lg shadow-md max-w-sm transition-opacity duration-300 opacity-0`;
+            alertDiv.innerHTML = `<div class="flex items-center"><span class="mr-2">${icon}</span><span>${message}</span></div>`;
             
-            container.appendChild(alertDiv);
+            container.prepend(alertDiv);
             
+            // Fade in
+            setTimeout(() => alertDiv.style.opacity = '1', 10);
+
+            // Fade out and remove
             setTimeout(() => {
-                alertDiv.remove();
-            }, duration);
-        }
-        
-        // --- Lógica de Toggle ---
-        
-        function toggleFormVisibility(hide = false) {
-            const isHidden = inputSection.classList.contains('hidden');
+                alertDiv.style.opacity = '0';
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 5000);
+        };
 
-            // Só permite mostrar o formulário se estiver na aba de produtividade (SCM, Giben ou Romani)
-            if (currentView !== 'scm' && currentView !== 'giben' && currentView !== 'romani') {
-                inputSection.classList.add('hidden');
-                return; 
+        // Função para mostrar o modal de confirmação
+        const showConfirmationModal = (callback) => {
+            deleteCallback = callback;
+            confirmationModal.classList.remove('hidden');
+            confirmationModal.classList.add('flex');
+        };
+
+        // Lógica de exclusão e modal
+        cancelDeleteButton.onclick = () => {
+            confirmationModal.classList.add('hidden');
+            confirmationModal.classList.remove('flex');
+            deleteCallback = null;
+        };
+
+        confirmDeleteButton.onclick = () => {
+            if (deleteCallback) {
+                deleteCallback();
             }
-
-            if (hide || !isHidden) {
-                inputSection.classList.add('hidden');
-                toggleFormButton.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Novo Registro';
-                toggleFormButton.classList.remove('bg-gray-500', 'hover:bg-gray-600');
-                toggleFormButton.classList.add('bg-green-500', 'hover:bg-green-600');
-            } else {
-                inputSection.classList.remove('hidden');
-                toggleFormButton.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Fechar Formulário';
-                toggleFormButton.classList.remove('bg-green-500', 'hover:bg-green-600');
-                toggleFormButton.classList.add('bg-gray-500', 'hover:bg-gray-600');
-            }
-        }
+            confirmationModal.classList.add('hidden');
+            confirmationModal.classList.remove('flex');
+            deleteCallback = null;
+        };
         
-        toggleFormButton.addEventListener('click', () => {
-            toggleFormVisibility();
-        });
+        // --- Operações de Dados em Memória / LocalStorage ---
 
-        function toggleTargetVisibility() {
-            targetSection.classList.toggle('hidden');
-            toggleTargetButton.classList.toggle('rotate-45');
-        }
+        // Salvar/Atualizar a Meta de Produtividade (Persistência via LocalStorage)
+        const saveTargetProductivity = (newTarget) => {
+            maxDailyTarget = newTarget;
+            currentTargetDisplay.textContent = newTarget.toLocaleString('pt-BR');
+            localStorage.setItem(`target_${currentMachine}`, newTarget);
+            showAlert(`Meta de produtividade para ${currentMachine} atualizada para ${newTarget} ${machineConfig[currentMachine].unit}/dia.`, 'success');
+            renderUI();
+        };
+        
+        // Carregar a Meta de Produtividade (Persistência via LocalStorage)
+        const fetchCurrentTarget = () => {
+            const config = machineConfig[currentMachine];
+            const storedTarget = localStorage.getItem(`target_${currentMachine}`);
+            
+            // Tenta carregar do localStorage, senão usa a meta padrão
+            const newTarget = storedTarget ? parseFloat(storedTarget) : config.defaultTarget;
+            
+            maxDailyTarget = newTarget;
+            currentTargetDisplay.textContent = newTarget.toLocaleString('pt-BR');
+            
+            // Salva o valor padrão se não existir no localStorage
+            if (!storedTarget) {
+                localStorage.setItem(`target_${currentMachine}`, newTarget);
+            }
+        };
 
-        toggleTargetButton.addEventListener('click', () => {
-            toggleTargetVisibility();
-        });
+
+        // Salvar um Novo Registro de Produção/Entrega (Em memória)
+        const saveProductionRecord = (record) => {
+            // Adiciona um ID único e timestamp para simular o Firestore
+            const newRecord = { 
+                ...record, 
+                id: crypto.randomUUID(), 
+                timestamp: Date.now() 
+            };
+            
+            allRecords.push(newRecord);
+
+            showAlert("Registro de produção/entrega salvo com sucesso! (Em memória)", 'success');
+            productionForm.reset();
+            document.getElementById('date').valueAsDate = new Date();
+            setupOperatorFields(currentMachine); // Garante que os valores hidden estejam corretos após o reset
+            
+            renderUI(); // Re-renderiza a UI com os novos dados
+        };
+
+        // Deletar um Registro (Em memória)
+        const deleteRecord = (recordId) => {
+            showConfirmationModal(() => {
+                const initialLength = allRecords.length;
+                allRecords = allRecords.filter(r => r.id !== recordId);
+                
+                if (allRecords.length < initialLength) {
+                    showAlert("Registro deletado com sucesso. (Em memória)", 'success');
+                    renderUI();
+                } else {
+                    showAlert("Erro ao deletar: Registro não encontrado.", 'error');
+                }
+            });
+        };
+
+        // --- Geração de Dados Fictícios Estáticos ---
+
+        const generateDummyData = () => {
+            const dummyRecords = [];
+            const endDate = new Date();
+            
+            for (let i = 0; i < 30; i++) {
+                const machineName = machineList[i % machineList.length]; 
+                const config = machineConfig[machineName];
+                const [op1, op2] = config.operators; // Usa a dupla fixa
+
+                const date = new Date(endDate);
+                date.setDate(endDate.getDate() - Math.floor(i / machineList.length));
+                const formattedDate = date.toISOString().split('T')[0];
+
+                let meters, deliveredQuantity;
+                const target = config.defaultTarget; // Usado para cálculo do dummy data
+
+                if (machineName === 'Romani') {
+                    // Coladeira (Metros) - Sem comissão por unidade bônus
+                    meters = Math.round((Math.random() * 800) + 2000); 
+                    deliveredQuantity = Math.round((Math.random() * 200) + 400); 
+                } else {
+                    // SCM/Giben (Chapas) - Comissionável
+                    const targetOffset = (i % 5 === 0) ? -100 : 50; // Alguns abaixo da meta, a maioria acima
+                    meters = Math.round(target + targetOffset + (Math.random() * 50)); 
+                    // Quantidade entregue (Entre 70% e 100% do produzido)
+                    deliveredQuantity = Math.round(meters * (0.7 + Math.random() * 0.3)); 
+                }
+
+                const hours = parseFloat(((Math.random() * 2.5) + 7.5).toFixed(1)); 
+                
+                // --- CÁLCULO DA COMISSÃO: min(produção acima da meta, qtd entregue) ---
+                let commissionUnits = 0;
+                let totalCommission = 0;
+                
+                if (config.isCommissionable) {
+                    // 1. Unidades produzidas acima da meta
+                    const potentialBonusUnits = Math.max(0, meters - target);
+                    
+                    // 2. Unidades comissionáveis: o mínimo entre o potencial e o que foi entregue.
+                    commissionUnits = Math.min(potentialBonusUnits, deliveredQuantity);
+                    totalCommission = commissionUnits * COMMISSION_RATE;
+                }
+                
+                const newRecord = {
+                    id: crypto.randomUUID(),
+                    machine: machineName,
+                    date: formattedDate,
+                    meters: meters,
+                    hours: hours,
+                    deliveredQuantity: deliveredQuantity,
+                    productivity_m_h: meters / hours,
+                    productivity_percent: (meters / target) * 100,
+                    operator1: op1, // Usa operador fixo
+                    operator2: op2, // Usa operador fixo
+                    commissionUnits: commissionUnits,
+                    totalCommission: totalCommission,
+                    timestamp: Date.now() - (i * 1000)
+                };
+                
+                dummyRecords.push(newRecord);
+            }
+            allRecords = dummyRecords; // Carrega dados estáticos na memória
+        };
 
 
-        // --- Funções de Gráfico ---
+        // --- Visualização de Dados e Atualização da UI ---
 
-        function initializeChart() {
-            const ctx = document.getElementById('productivityChart').getContext('2d');
+        const setupOperatorFields = (machineName) => {
+            const config = machineConfig[machineName];
+            
+            // Assegura que a dupla é sempre 2 
+            const op1 = config.operators[0];
+            const op2 = config.operators[1];
+            
+            // Atualiza os elementos de display (visíveis)
+            operator1Display.textContent = op1;
+            operator2Display.textContent = op2;
+
+            // Atualiza os inputs hidden (para submissão do formulário)
+            operator1Input.value = op1;
+            operator2Input.value = op2;
+        };
+
+        const updateUIMetrics = (machineName) => {
+            const config = machineConfig[machineName];
+
+            // 1. Meta Diária
+            targetUnitDisplay.textContent = `${config.unit}/dia`;
+            targetInput.placeholder = `Nova Meta (${config.unit})`;
+
+            // 2. Formulário
+            metersLabel.textContent = `${config.unit} Produzidos (${config.unit.toLowerCase().charAt(0)})`;
+
+            // 3. Gráfico
+            chartMainLabel.textContent = config.unit;
+
+            // 4. Tabela
+            tableMainMetricHeader.textContent = `${config.unit} (${config.unit.toLowerCase().charAt(0)})`;
+            
+            currentMachineTitle.textContent = config.name;
+
+            // 5. Operadores Fixos
+            setupOperatorFields(machineName);
+        };
+
+
+        // Função para agregar dados por Máquina e Data para o gráfico
+        const aggregateDataForChart = (records, machine) => {
+            const filteredRecords = records.filter(r => r.machine === machine);
+            const config = machineConfig[machine];
+
+            const aggregated = filteredRecords.reduce((acc, record) => {
+                const key = record.date;
+                
+                if (!acc[key]) {
+                    acc[key] = {
+                        date: record.date,
+                        totalMeters: 0,
+                        totalDelivered: 0, 
+                    };
+                }
+                
+                acc[key].totalMeters += record.meters;
+                acc[key].totalDelivered += record.deliveredQuantity; 
+                
+                return acc;
+            }, {});
+
+            // Ordena por data
+            const sortedData = Object.values(aggregated).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Prepara arrays para Chart.js
+            const labels = sortedData.map(item => item.date);
+            const metersData = sortedData.map(item => item.totalMeters);
+            const deliveredQuantityData = sortedData.map(item => item.totalDelivered);
+            
+            return { labels, metersData, deliveredQuantityData, unit: config.unit };
+        };
+
+
+        // Função para renderizar o Gráfico de Linhas (Métrica Principal vs. Quantidade Entregue)
+        const renderChart = (data) => {
             if (productivityChart) {
                 productivityChart.destroy();
             }
+
+            const ctx = document.getElementById('productivityChart').getContext('2d');
             productivityChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Produtividade (%)',
-                        data: [],
-                        borderColor: '#1D4ED8', 
-                        backgroundColor: 'rgba(29, 78, 216, 0.1)',
-                        tension: 0.3,
-                        fill: true,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                    }]
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: `${data.unit} Produzidos`,
+                            data: data.metersData,
+                            borderColor: '#3b82f6', // blue-500
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            fill: true, 
+                            tension: 0.3,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Quantidades Entregues (unid.)', 
+                            data: data.deliveredQuantityData, 
+                            borderColor: '#10b981', // emerald-500 
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            fill: false, 
+                            tension: 0.3,
+                            yAxisID: 'y1' 
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         y: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'Produtividade (%)', color: '#4B5563' },
-                            max: 150 
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: `${data.unit} Produzidos`
+                            },
+                            min: 0
                         },
-                        x: {
-                            title: { display: true, text: 'Data', color: '#4B5563' }
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false, 
+                            },
+                            title: {
+                                display: true,
+                                text: 'Quantidades Entregues (unid.)'
+                            },
+                            min: 0
                         }
                     },
                     plugins: {
-                        legend: { display: true },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => `Produtividade: ${context.parsed.y.toFixed(2)} %`
-                            }
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: `Desempenho Diário da Máquina: ${currentMachine}`
                         }
                     }
                 }
             });
-        }
-
-        function updateChart(data) {
-            // Ordena os dados por data
-            const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
-            const target = currentMachine === 'romani' ? meterDailyTarget : panelDailyTarget;
-            
-            productivityChart.data.labels = sortedData.map(item => item.date);
-            // Calcula a porcentagem em tempo real com a meta DIÁRIA atual (Valor / Meta)
-            productivityChart.data.datasets[0].data = sortedData.map(item => 
-                (item.value / target) * 100
-            );
-            productivityChart.update();
-        }
-
-        // --- Funções de LocalStorage (CRUD) ---
+        };
         
-        /**
-         * Retorna a chave do LocalStorage para a máquina fornecida.
-         */
-        function getLocalStorageKey(machine) {
-            switch (machine) {
-                case 'scm': return SCM_DATA_KEY;
-                case 'giben': return GIBEN_DATA_KEY;
-                case 'romani': return ROMANI_DATA_KEY;
-                default: throw new Error(`Máquina desconhecida: ${machine}`);
-            }
-        }
+        // Renderiza o Relatório de Comissões (Divide por 2)
+        const renderCommissionReport = (records) => {
+            const filteredRecords = records.filter(r => r.machine === currentMachine);
+            const config = machineConfig[currentMachine];
+            commissionSummaryBody.innerHTML = '';
 
-        /**
-         * Adiciona dados fictícios ao LocalStorage se a chave estiver vazia.
-         * O campo 'value' agora armazena Chapas (un) ou Metros (m)
-         */
-        function addInitialMockData(machine) {
-            const mockData = [
-                // Dados SCM (Chapas)
-                { id: crypto.randomUUID(), date: "2024-10-21", value: 4500, hours: 8.0, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2024-10-22", value: 5000, hours: 8.0, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2024-10-23", value: 5500, hours: 8.5, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2024-10-24", value: 3000, hours: 6.0, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2024-09-15", value: 6000, hours: 9.0, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2024-09-16", value: 5750, hours: 8.5, machine: 'scm' }, 
-                { id: crypto.randomUUID(), date: "2023-11-01", value: 4800, hours: 8.0, machine: 'scm' }, 
-
-                // Dados Giben (Chapas)
-                { id: crypto.randomUUID(), date: "2024-10-21", value: 4200, hours: 7.5, machine: 'giben' }, 
-                { id: crypto.randomUUID(), date: "2024-10-22", value: 5700, hours: 9.0, machine: 'giben' }, 
-                { id: crypto.randomUUID(), date: "2024-10-23", value: 5000, hours: 8.0, machine: 'giben' }, 
-
-                // Dados Romani (Metros Lineares - Coladeira)
-                { id: crypto.randomUUID(), date: "2024-10-21", value: 105000, hours: 9.0, machine: 'romani' }, 
-                { id: crypto.randomUUID(), date: "2024-10-22", value: 95000, hours: 8.5, machine: 'romani' }, 
-                { id: crypto.randomUUID(), date: "2024-10-23", value: 110000, hours: 9.5, machine: 'romani' }, 
-            ];
-
-            const machineData = mockData.filter(d => d.machine === machine);
-            
-            try {
-                const key = getLocalStorageKey(machine);
-                localStorage.setItem(key, JSON.stringify(machineData));
-                showAlert(`Dados de demonstração para ${machine.toUpperCase()} carregados!`, 'info', 2000);
-                return machineData;
-            } catch (e) {
-                console.error(e.message);
-                return [];
-            }
-        }
-
-        /**
-         * Carrega os registros de uma máquina do LocalStorage.
-         */
-        function loadRecords(machine = currentMachine) {
-            try {
-                const key = getLocalStorageKey(machine);
-                const json = localStorage.getItem(key);
-                
-                if (!json) {
-                    // Se estiver vazio, carrega e retorna os dados fictícios
-                    return addInitialMockData(machine);
-                }
-                // Tenta carregar os dados. Se for um array de objetos, garante que o campo seja 'value'
-                const records = JSON.parse(json);
-                return records.map(record => ({
-                    // Usa 'value' se 'meters' existir, para compatibilidade com dados antigos
-                    value: record.value !== undefined ? record.value : (record.meters || 0),
-                    ...record
-                }));
-
-            } catch (e) {
-                console.error("Erro ao carregar dados:", e.message);
-                // Em caso de erro (ex: dados corrompidos), tenta usar mock data como fallback
-                return addInitialMockData(machine); 
-            }
-        }
-
-        /**
-         * Salva os registros atualizados no LocalStorage e atualiza a UI.
-         */
-        function saveRecords(machine, data) {
-            try {
-                const key = getLocalStorageKey(machine);
-                localStorage.setItem(key, JSON.stringify(data));
-                
-                // Chama a atualização da UI baseada na view ativa
-                if (currentView === machine) {
-                    updateUI();
-                } else if (currentView === 'reports') {
-                    // Se estiver na aba de relatórios, regenera os relatórios
-                    generateReports(currentMachine);
-                }
-            } catch (e) {
-                 showAlert("Erro ao salvar dados localmente.", 'error');
-                 console.error("Erro ao salvar dados:", e.message);
-            }
-        }
-
-        /**
-         * Salva ou atualiza um registro de produção.
-         */
-        function saveProductionRecord(newRecord) {
-            let records = loadRecords(currentMachine);
-            let existingRecordIndex = -1;
-
-            // 1. Verificar se a data já existe (Atualização)
-            existingRecordIndex = records.findIndex(r => r.date === newRecord.date);
-
-            if (existingRecordIndex !== -1) {
-                // Atualiza o registro existente
-                records[existingRecordIndex] = { 
-                    ...records[existingRecordIndex], 
-                    ...newRecord,
-                    id: records[existingRecordIndex].id // Mantém o ID original
-                };
-                showAlert(`Registro da ${currentMachine.toUpperCase()} em ${newRecord.date} atualizado!`, 'info');
-            } else {
-                // Adiciona novo registro
-                newRecord.id = crypto.randomUUID(); // Gera um ID único
-                records.push(newRecord);
-                showAlert(`Registro da ${currentMachine.toUpperCase()} salvo com sucesso!`, 'success');
-            }
-            
-            // 2. Salva e re-renderiza
-            saveRecords(currentMachine, records);
-
-            // 3. Limpar formulário e fechar
-            document.getElementById('production-form').reset();
-            toggleFormVisibility(true);
-        }
-
-        /**
-         * Exclui um registro por ID.
-         */
-        async function deleteProductionRecord(docId) {
-             const isConfirmed = await showConfirmDialog(`Tem certeza de que deseja excluir este registro da máquina ${currentMachine.toUpperCase()}? Esta ação é irreversível.`);
-            
-            if (isConfirmed) {
-                let records = loadRecords(currentMachine);
-                records = records.filter(record => record.id !== docId);
-                saveRecords(currentMachine, records);
-                showAlert("Registro excluído com sucesso!", 'success');
-            }
-        }
-        
-        /**
-         * Carrega as metas de produtividade do LocalStorage na inicialização.
-         */
-        function loadTargetProductivity() {
-            const storedPanelTarget = localStorage.getItem(PANEL_TARGET_KEY);
-            const storedMeterTarget = localStorage.getItem(METER_TARGET_KEY);
-
-            panelDailyTarget = storedPanelTarget ? parseFloat(storedPanelTarget) : DEFAULT_PANEL_TARGET;
-            meterDailyTarget = storedMeterTarget ? parseFloat(storedMeterTarget) : DEFAULT_METER_TARGET;
-            
-            // Define o target para o display e input baseado na máquina ativa
-            updateTargetUI();
-        }
-
-        /**
-         * Helper function para atualizar os elementos de UI da Meta
-         */
-        function updateTargetUI() {
-            let target;
-            let unit;
-            let unitLabel;
-
-            const isRomani = currentMachine === 'romani';
-            
-            if (isRomani) {
-                target = meterDailyTarget;
-                unit = 'm/dia';
-                unitLabel = 'Metros/Dia';
-            } else { // scm, giben
-                target = panelDailyTarget;
-                unit = 'chapas/dia';
-                unitLabel = 'Chapas/Dia';
-            }
-            
-            // Atualiza o display do target atual
-            targetDisplay.textContent = target.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
-            targetUnitDisplay.textContent = unit;
-            
-            // Atualiza o formulário de configuração de meta
-            targetInput.value = target;
-            targetFormUnitDisplay.textContent = unitLabel.toUpperCase();
-            targetInputLabel.textContent = `Nova Meta (${unitLabel})`;
-        }
-
-
-        /**
-         * Salva a meta no LocalStorage e atualiza a UI.
-         */
-        function saveTargetProductivity(newTarget) {
-            let key;
-            if (currentMachine === 'romani') {
-                key = METER_TARGET_KEY;
-            } else {
-                key = PANEL_TARGET_KEY;
-            }
-            
-            localStorage.setItem(key, newTarget);
-            loadTargetProductivity(); // Atualiza as variáveis globais e o display
-            showAlert("Meta de produtividade salva com sucesso!", 'success', 2500);
-            toggleTargetVisibility();
-            
-            // Atualiza os relatórios e o gráfico com a nova meta
-            if (currentView === currentMachine) {
-                updateUI();
-            } else if (currentView === 'reports') {
-                generateReports(currentMachine);
-            }
-        }
-
-
-        // --- Funções de Renderização da UI ---
-
-        /**
-         * Atualiza todos os elementos de UI específicos da máquina (rótulos, títulos, placeholders).
-         */
-        function updateMachineUI() {
-            const isRomani = currentMachine === 'romani';
-            
-            // 1. Target UI (Meta) - Chamada para atualizar meta e unidade
-            updateTargetUI();
-
-            // 2. Form UI
-            const unitText = isRomani ? 'Metros Lineares Colados (m)' : 'Chapas Cortadas (un)';
-            const placeholder = isRomani ? 'Ex: 105000' : 'Ex: 5500';
-            const step = isRomani ? '0.01' : '1';
-            
-            document.getElementById('form-title').textContent = `Registro Diário de Produção (${currentMachine.toUpperCase()})`;
-            document.getElementById('input-value-label').textContent = unitText;
-            document.getElementById('input-value').placeholder = placeholder;
-            document.getElementById('input-value').step = step;
-            
-            // 3. Table UI Headers
-            document.getElementById('table-machine-name').textContent = currentMachine.toUpperCase();
-            document.getElementById('table-value-header').textContent = isRomani ? 'Metros (m)' : 'Chapas (un)';
-            
-            // 4. Report UI Headers
-            const reportValueHeader = isRomani ? 'Metros Totais (m)' : 'Chapas Totais (un)';
-            document.getElementById('annual-report-value-header').textContent = reportValueHeader;
-            document.getElementById('monthly-report-value-header').textContent = reportValueHeader;
-            document.getElementById('annual-report-machine-name').textContent = currentMachine.toUpperCase();
-            document.getElementById('monthly-report-machine-name').textContent = currentMachine.toUpperCase();
-        }
-
-        /**
-         * Renderiza a tabela de histórico de produtividade.
-         */
-        function renderTable(records) {
-            const tbody = document.getElementById('data-table-body');
-            tbody.innerHTML = '';
-            
-            const isRomani = currentMachine === 'romani';
-            const target = isRomani ? meterDailyTarget : panelDailyTarget;
-
-            // Ordenar por data (mais recente primeiro)
-            const sortedRecords = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            if (sortedRecords.length === 0) {
-                const unit = isRomani ? 'Metros' : 'Chapas';
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Nenhum registro de ${unit} encontrado para ${currentMachine.toUpperCase()}.</td></tr>`;
+            if (!config.isCommissionable) {
+                commissionSummaryBody.innerHTML = `<tr><td colspan="2" class="px-6 py-4 text-center text-gray-500">A máquina ${currentMachine} não paga comissão por Unidade Bônus.</td></tr>`;
                 return;
             }
 
-            sortedRecords.forEach(record => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50';
+            const operatorTotals = {};
 
-                // Formata o valor (chapas ou metros)
-                const valueFormatted = Number(record.value).toLocaleString('pt-BR', { minimumFractionDigits: isRomani ? 2 : 0, maximumFractionDigits: isRomani ? 2 : 0 });
-                const hours = Number(record.hours).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            // 1. Agrega o total de comissão por operador
+            filteredRecords.forEach(record => {
+                const commission = record.totalCommission || 0;
                 
-                // Re-calcula a porcentagem com a meta DIÁRIA ATUAL
-                const currentProductivityPercent = (record.value / target) * 100;
-                
-                const productivityPercentFormatted = Number(currentProductivityPercent).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                // Divide a comissão total igualmente entre os 2 operadores para este registro
+                const commissionPerOperator = commission / config.numOperators; 
 
-                tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.date}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${valueFormatted}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${hours}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">${productivityPercentFormatted} %</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button class="text-red-600 hover:text-red-900 ml-3 delete-btn" data-id="${record.id}">Excluir</button>
+                // Adiciona ao total de cada operador
+                const op1 = record.operator1 || 'Operador 1 Não Nomeado';
+                const op2 = record.operator2 || 'Operador 2 Não Nomeado';
+
+                operatorTotals[op1] = (operatorTotals[op1] || 0) + commissionPerOperator;
+                operatorTotals[op2] = (operatorTotals[op2] || 0) + commissionPerOperator;
+            });
+            
+            // 2. Cria as linhas do relatório
+            // Filtra e remove operadores com comissão zero 
+            const operators = Object.keys(operatorTotals)
+                .filter(op => operatorTotals[op] > 0 || filteredRecords.some(r => r.operator1 === op || r.operator2 === op)) 
+                .sort();
+                
+            if (operators.length === 0) {
+                commissionSummaryBody.innerHTML = `<tr><td colspan="2" class="px-6 py-4 text-center text-gray-500">Nenhum registro comissionável encontrado para esta máquina.</td></tr>`;
+                return;
+            }
+
+            operators.forEach(operator => {
+                const totalCommission = operatorTotals[operator] || 0;
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${operator}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-right ${totalCommission > 0 ? 'text-green-600' : 'text-gray-500'}">
+                        ${totalCommission.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </td>
                 `;
-                tbody.appendChild(tr);
+                commissionSummaryBody.appendChild(row);
             });
+        };
 
-            // Adicionar listeners para os botões de exclusão
-            document.querySelectorAll('.delete-btn').forEach(button => {
-                button.removeEventListener('click', handleDeleteClick);
-                button.addEventListener('click', handleDeleteClick);
-            });
-        }
-        
-        // Handler centralizado para o botão de exclusão
-        function handleDeleteClick(e) {
-            const docId = e.target.dataset.id;
-            deleteProductionRecord(docId);
-        }
 
-        // Função de diálogo de confirmação (customizada)
-        function showConfirmDialog(message) {
-            return new Promise(resolve => {
-                const modalId = `modal-${Date.now()}`;
-                const modalHtml = `
-                    <div id="${modalId}" class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300">
-                        <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-sm transform transition-all duration-300 scale-95 opacity-0">
-                            <h3 class="text-lg font-bold text-gray-900 mb-4">Confirmação</h3>
-                            <p class="text-sm text-gray-600 mb-6">${message}</p>
-                            <div class="flex justify-end space-x-3">
-                                <button id="cancel-btn-${modalId}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Cancelar</button>
-                                <button id="confirm-btn-${modalId}" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150">Confirmar</button>
-                            </div>
-                        </div>
-                    </div>
+        // Função para renderizar os dados na tabela do Dashboard
+        const renderDashboardData = (records, maxTarget) => {
+            const filteredRecords = records
+                .filter(r => r.machine === currentMachine)
+                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+            recordsTableBody.innerHTML = ''; 
+
+            if (filteredRecords.length === 0) {
+                recordsTableBody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Nenhum registro encontrado para esta máquina.</td></tr>';
+            }
+
+            filteredRecords.forEach(record => {
+                const productivity_percent = ((record.meters / maxTarget) * 100).toFixed(1);
+                
+                // DADOS DE COMISSÃO
+                const commissionTotal = record.totalCommission || 0;
+                const commissionUnits = record.commissionUnits || 0;
+                const commissionColor = commissionTotal > 0 ? 'text-green-600 font-semibold' : 'text-gray-500';
+                
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.meters.toLocaleString('pt-BR')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.operator1} / ${record.operator2}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">${commissionUnits.toLocaleString('pt-BR')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${commissionColor}">${commissionTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${productivity_percent >= 100 ? 'text-green-600' : 'text-red-500'} font-semibold">${productivity_percent}%</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">${record.deliveredQuantity.toLocaleString('pt-BR')}</td> 
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-red-600 hover:text-red-900 transition duration-150" onclick="window.deleteRecord('${record.id}')">Deletar</button>
+                    </td>
                 `;
-
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-                const modal = document.getElementById(modalId);
-                const dialog = modal.querySelector('div:nth-child(1)');
-
-                setTimeout(() => {
-                    modal.style.opacity = '1';
-                    dialog.classList.remove('scale-95', 'opacity-0');
-                    dialog.classList.add('scale-100', 'opacity-100');
-                }, 10);
-
-                const cleanup = () => {
-                    modal.style.opacity = '0';
-                    dialog.classList.remove('scale-100', 'opacity-100');
-                    dialog.classList.add('scale-95', 'opacity-0');
-                    setTimeout(() => {
-                        modal.remove();
-                    }, 300);
-                };
-
-                document.getElementById(`confirm-btn-${modalId}`).onclick = () => {
-                    cleanup();
-                    resolve(true);
-                };
-                
-                document.getElementById(`cancel-btn-${modalId}`).onclick = () => {
-                    cleanup();
-                    resolve(false);
-                };
-            });
-        }
-        
-        // --- Lógica de Relatórios e Agregação ---
-        
-        /**
-         * Agrega os registros por ano ou por mês/ano.
-         * Usa 'value' para chapas ou metros.
-         */
-        function aggregateReports(records, groupBy) {
-            const aggregated = records.reduce((acc, record) => {
-                const date = new Date(record.date + 'T12:00:00'); // Adiciona horário para evitar problemas de fuso horário
-                const year = date.getFullYear();
-                
-                let key;
-                if (groupBy === 'year') {
-                    key = year.toString();
-                } else {
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    key = `${year}-${month}`;
-                }
-
-                if (!acc[key]) {
-                    acc[key] = { 
-                        key,
-                        totalValue: 0, // Armazena o valor total (chapas ou metros)
-                        totalHours: 0, 
-                        daysCount: new Set(),
-                        machine: record.machine
-                    };
-                }
-
-                acc[key].totalValue += record.value;
-                acc[key].totalHours += record.hours;
-                acc[key].daysCount.add(record.date);
-
-                return acc;
-            }, {});
-
-            // Determina a meta para o cálculo
-            const machine = records[0] ? records[0].machine : currentMachine;
-            const isRomani = machine === 'romani';
-            const target = isRomani ? meterDailyTarget : panelDailyTarget;
-
-            // Converter para array e calcular a produtividade média
-            return Object.values(aggregated).map(item => {
-                const days = item.daysCount.size;
-                // Produtividade média (%) = (Valor Total / (Dias * Meta Diária)) * 100
-                const avgProductivity = (item.totalValue / (days * target)) * 100;
-
-                return {
-                    key: item.key,
-                    totalValue: item.totalValue,
-                    totalHours: item.totalHours,
-                    days: days,
-                    avgProductivity: avgProductivity
-                };
-            }).sort((a, b) => a.key.localeCompare(b.key)); // Ordena cronologicamente pela chave
-        }
-        
-        // Função para formatar o nome do mês
-        function formatMonthKey(key) {
-            if (key.length === 4) return key; // É um ano, retorna o próprio ano
-            
-            const [year, month] = key.split('-');
-            // Usa o primeiro dia do mês para formatar
-            const date = new Date(year, parseInt(month) - 1, 1); 
-            return date.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long' });
-        }
-        
-        /**
-         * Gera e renderiza os relatórios Mensal e Anual.
-         */
-        function generateReports(machine) {
-            const records = loadRecords(machine);
-            
-            // 1. Relatório Anual
-            const annualData = aggregateReports(records, 'year');
-            renderReportTable(annualData, 'annual-report-body', 'year', machine);
-
-            // 2. Relatório Mensal
-            const monthlyData = aggregateReports(records, 'month');
-            renderReportTable(monthlyData, 'monthly-report-body', 'month', machine);
-            
-             // Atualiza o nome da máquina nos títulos dos relatórios
-            updateMachineUI(); // Garante que os títulos dos relatórios (máquina e unidade) estão corretos
-        }
-        
-        /**
-         * Renderiza uma tabela de relatório.
-         */
-        function renderReportTable(data, tableBodyId, type, machine) {
-            const tbody = document.getElementById(tableBodyId);
-            tbody.innerHTML = '';
-            
-            const isRomani = machine === 'romani';
-
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Nenhum registro encontrado para ${machine.toUpperCase()}.</td></tr>`;
-                return;
-            }
-
-            data.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50';
-                
-                // Formatação do valor (chapas ou metros)
-                const totalValueFormatted = Number(item.totalValue).toLocaleString('pt-BR', { maximumFractionDigits: isRomani ? 0 : 0 });
-                const totalHoursFormatted = Number(item.totalHours).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-                const avgProductivityFormatted = Number(item.avgProductivity).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                const keyFormatted = type === 'month' ? formatMonthKey(item.key) : item.key;
-
-
-                tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${keyFormatted}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${totalValueFormatted}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${totalHoursFormatted}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${item.days}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-extrabold text-purple-700">${avgProductivityFormatted} %</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // --- Lógica de Abas (Tabs) ---
-        
-        /**
-         * Atualiza a UI completa da máquina atual (Tabela e Gráfico).
-         */
-        function updateUI() {
-            const records = loadRecords(currentMachine);
-            renderTable(records);
-            updateChart(records);
-        }
-        
-        /**
-         * Alterna a visualização entre as máquinas e o painel de relatórios.
-         */
-        function switchView(viewId) {
-            currentView = viewId;
-
-            // 1. Alterna o conteúdo principal
-            const isProductivityView = viewId === 'scm' || viewId === 'giben' || viewId === 'romani';
-
-            if (isProductivityView) {
-                currentMachine = viewId;
-                productivityContent.classList.remove('hidden');
-                reportsContent.classList.add('hidden');
-                
-                // ATUALIZA TODA A UI baseada na máquina ATIVA (incluindo metas e rótulos)
-                updateMachineUI(); 
-                updateUI(); 
-            } else if (viewId === 'reports') {
-                productivityContent.classList.add('hidden');
-                reportsContent.classList.remove('hidden');
-                
-                // Atualiza a UI para a máquina ATIVA, depois gera relatórios para ela.
-                updateMachineUI(); 
-                generateReports(currentMachine); 
-            } else {
-                return; 
-            }
-
-            // 2. Alterna a aparência das abas
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active', 'bg-blue-600', 'text-white');
-                btn.classList.add('bg-blue-100', 'text-gray-700');
+                recordsTableBody.appendChild(row);
             });
 
-            const activeTab = document.querySelector(`.tab-button[data-view="${viewId}"]`);
-            if (activeTab) {
-                 activeTab.classList.add('active', 'bg-blue-600', 'text-white');
-                 activeTab.classList.remove('bg-blue-100', 'text-gray-700');
-            }
+            // Agrega os dados e atualiza o gráfico
+            const chartData = aggregateDataForChart(records, currentMachine);
+            renderChart(chartData);
             
-            // 3. Garante que o formulário de registro está fechado (exceto se estiver nas abas de máquina)
-            toggleFormVisibility(true);
+            // Atualiza os rótulos dinâmicos da UI
+            updateUIMetrics(currentMachine);
+        };
+
+        // Função principal de renderização que controla as abas
+        const renderUI = () => {
+            fetchCurrentTarget(); // Garante que a meta mais recente seja usada
+            
+             // 1. Renderiza o conteúdo da aba ativa
+            if (currentContentTab === 'dashboard') {
+                renderDashboardData(allRecords, maxDailyTarget);
+            } else if (currentContentTab === 'report') {
+                renderCommissionReport(allRecords);
+            }
         }
         
-        // Adicionar listeners aos botões de aba
-        document.getElementById('tab-scm').addEventListener('click', () => switchView('scm'));
-        document.getElementById('tab-giben').addEventListener('click', () => switchView('giben'));
-        document.getElementById('tab-romani').addEventListener('click', () => switchView('romani')); 
-        document.getElementById('tab-reports').addEventListener('click', () => switchView('reports'));
-
-
         // --- Inicialização e Eventos ---
 
-        /**
-         * Inicializa a aplicação: carrega meta, inicializa gráfico e carrega dados.
-         */
-        function initializeApp() {
-            // 1. Carrega as metas (painel e metro) do LocalStorage
-            loadTargetProductivity();
+        // Função para alternar a máquina selecionada
+        const switchMachine = (machineName) => {
+            currentMachine = machineName;
             
-            // 2. Inicializa o Gráfico
-            initializeChart();
-            
-            // 3. Inicia na aba SCM
-            switchView('scm'); 
-        }
+            // Atualiza o visual dos botões da máquina
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.machine === machineName) {
+                    btn.classList.add('active');
+                }
+            });
 
-        // Lógica de submissão do formulário de Produção
-        document.getElementById('production-form').addEventListener('submit', (e) => {
+            // Atualiza a meta, operadores fixos e re-renderiza a UI
+            renderUI();
+        };
+
+        // Função para alternar a aba de conteúdo (Dashboard/Relatório)
+        const switchContentTab = (tabName) => {
+            currentContentTab = tabName;
+            
+            // Atualiza o visual das abas de conteúdo
+            document.querySelectorAll('.content-tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tabName) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Alterna a visibilidade dos containers
+            contentDashboard.classList.add('hidden');
+            contentReport.classList.add('hidden');
+            
+            if (tabName === 'dashboard') {
+                contentDashboard.classList.remove('hidden');
+            } else if (tabName === 'report') {
+                contentReport.classList.remove('hidden');
+            }
+            
+            renderUI(); // Re-renderiza o conteúdo da aba selecionada
+        };
+        
+        // Expor a função switchContentTab para uso no HTML onclick
+        window.switchContentTab = switchContentTab;
+
+
+        // Renderiza os botões das máquinas
+        const setupMachineTabs = () => {
+            machineTabsContainer.innerHTML = '';
+            machineList.forEach(machine => {
+                const button = document.createElement('button');
+                button.textContent = machineConfig[machine].name;
+                button.dataset.machine = machine;
+                button.className = `tab-button px-4 py-2 rounded-lg transition duration-150 text-gray-700 bg-gray-200 hover:bg-gray-300 font-medium shadow-sm`;
+                if (machine === currentMachine) {
+                    button.classList.add('active');
+                }
+                button.onclick = () => switchMachine(machine);
+                machineTabsContainer.appendChild(button);
+            });
+            updateUIMetrics(currentMachine);
+        };
+        
+        // Lógica de submissão do formulário de Produção/Entrega
+        productionForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            const date = document.getElementById('input-date').value;
-            // O valor é agora 'value' (chapas ou metros)
-            const value = parseFloat(document.getElementById('input-value').value); 
-            const hours = parseFloat(document.getElementById('input-hours').value);
+            const date = document.getElementById('date').value;
+            const metersInput = document.getElementById('meters');
+            const hoursInput = document.getElementById('hours');
+            const deliveredQuantityInput = document.getElementById('delivered-quantity'); 
+            
+            // Operadores são lidos dos campos hidden, que são atualizados via setupOperatorFields
+            const operator1 = operator1Input.value;
+            const operator2 = operator2Input.value; 
 
-            // Determina a meta e a unidade para validação e cálculo
-            const isRomani = currentMachine === 'romani';
-            const target = isRomani ? meterDailyTarget : panelDailyTarget;
-            const unitLabel = isRomani ? 'Metros' : 'Chapas';
+            const meters = parseInt(metersInput.value);
+            const hours = parseFloat(hoursInput.value);
+            const deliveredQuantity = parseInt(deliveredQuantityInput.value); 
+            
+            const config = machineConfig[currentMachine];
 
-
-            if (isNaN(value) || isNaN(hours) || hours <= 0 || value <= 0) {
-                showAlert(`Por favor, insira valores válidos e positivos para ${unitLabel} e Horas.`, 'error');
+            if (!date || isNaN(meters) || isNaN(hours) || isNaN(deliveredQuantity) || hours <= 0 || meters < 0 || deliveredQuantity < 0) {
+                showAlert("Por favor, insira valores válidos (Métrica Principal >= 0, Horas > 0, Quantidade Entregue >= 0).", 'error');
                 return;
             }
 
-            const productivity_m_h = value / hours;
-            const productivity_percent = (value / target) * 100;
+            // --- CÁLCULO DA COMISSÃO (Regra: min(produção acima da meta, qtd entregue)) ---
+            let commissionUnits = 0;
+            let totalCommission = 0;
+            if (config.isCommissionable) {
+                // 1. Unidades produzidas acima da meta
+                const potentialBonusUnits = Math.max(0, meters - maxDailyTarget);
+                
+                // 2. Unidades comissionáveis: o mínimo entre o potencial e o que foi entregue.
+                commissionUnits = Math.min(potentialBonusUnits, deliveredQuantity);
+                totalCommission = commissionUnits * COMMISSION_RATE;
+            }
+
+            const productivity_m_h = meters / hours;
+            const productivity_percent = (meters / maxDailyTarget) * 100;
 
             const newRecord = {
                 machine: currentMachine,
                 date: date,
-                value: value, 
+                meters: meters, 
                 hours: hours,
+                deliveredQuantity: deliveredQuantity,
                 productivity_m_h: productivity_m_h,
-                productivity_percent: productivity_percent, 
+                productivity_percent: productivity_percent,
+                // CAMPOS DE COMISSÃO
+                operator1: operator1,
+                operator2: operator2,
+                commissionUnits: commissionUnits,
+                totalCommission: totalCommission,
             };
 
             saveProductionRecord(newRecord);
@@ -972,21 +852,39 @@
         targetForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const newTarget = parseFloat(targetInput.value);
-            const isRomani = currentMachine === 'romani';
-            const unitLabel = isRomani ? 'Metros/Dia' : 'Chapas/Dia';
+            const config = machineConfig[currentMachine];
 
-            if (isNaN(newTarget) || newTarget < 1) {
-                showAlert(`Por favor, insira uma meta de ${unitLabel} válida (mínimo 1).`, 'error');
+            if (isNaN(newTarget) || newTarget < 10) {
+                showAlert(`Por favor, insira uma meta válida (mínimo 10 ${config.unit}/Dia).`, 'error');
                 return;
             }
 
             saveTargetProductivity(newTarget);
         });
 
+        // Expor a função deleteRecord para uso no HTML onclick
+        window.deleteRecord = deleteRecord;
+        
+        const initApp = async () => {
+            // 1. Gera dados fictícios para começar
+            generateDummyData();
+            
+            // 2. Configura os botões de máquina
+            setupMachineTabs();
+            
+            // 3. Configura os campos de operador com a dupla fixa inicial
+            setupOperatorFields(currentMachine);
+
+            // 4. Carrega a meta da máquina inicial e renderiza a UI
+            renderUI();
+            
+            // 5. Define a data padrão
+            document.getElementById('date').valueAsDate = new Date();
+        };
 
         // Inicia a aplicação no carregamento da janela
-        window.onload = initializeApp;
-        
+        window.onload = initApp;
+
     </script>
 </body>
 </html>
